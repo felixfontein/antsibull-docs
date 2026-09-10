@@ -67,6 +67,8 @@
          "section": "runas_become_plugin"
         }
        ],
+       "secret": true,
+       "type": "str",
        "vars": [
         {
          "name": "ansible_become_password"
@@ -221,6 +223,8 @@
         }
        ],
        "required": false,
+       "secret": true,
+       "type": "str",
        "vars": [
         {
          "name": "ansible_become_password"
@@ -401,6 +405,8 @@
         }
        ],
        "required": false,
+       "secret": true,
+       "type": "str",
        "vars": [
         {
          "name": "ansible_become_password"
@@ -1575,6 +1581,7 @@
         "The password for the O(certificate_key_pem) key file if it is encrypted.",
         "This option requires pypsrp >= 0.9.0 to be installed."
        ],
+       "secret": true,
        "type": "str",
        "vars": [
         {
@@ -1970,6 +1977,7 @@
         "password"
        ],
        "description": "Authentication password for the O(remote_user). Can be supplied as CLI option.",
+       "secret": true,
        "type": "str",
        "vars": [
         {
@@ -2143,6 +2151,7 @@
       },
       "password": {
        "description": "Authentication password for the O(remote_user). Can be supplied as CLI option.",
+       "secret": true,
        "type": "string",
        "vars": [
         {
@@ -2285,6 +2294,7 @@
          "name": "ANSIBLE_PRIVATE_KEY"
         }
        ],
+       "secret": true,
        "type": "string",
        "vars": [
         {
@@ -2338,6 +2348,7 @@
          "name": "ANSIBLE_PRIVATE_KEY_PASSPHRASE"
         }
        ],
+       "secret": true,
        "type": "string",
        "vars": [
         {
@@ -3005,6 +3016,7 @@
         "password"
        ],
        "description": "Authentication password for the O(remote_user). Can be supplied as CLI option.",
+       "secret": true,
        "type": "str",
        "vars": [
         {
@@ -4693,6 +4705,50 @@
     "metadata": null,
     "return": null
    },
+   "ansible.builtin.mask_secrets": {
+    "doc": {
+     "author": "Ansible Core Team",
+     "collection": "ansible.builtin",
+     "description": [
+      "Returns a copy of the input string with every registered secret it contains replaced by a placeholder.",
+      "Only values previously registered with the secret masker (for example via the P(ansible.builtin.register_secret#filter) filter) are redacted; other text is returned unchanged."
+     ],
+     "filename": "/ansible/plugins/filter/mask_secrets.yml",
+     "name": "mask_secrets",
+     "options": {
+      "_input": {
+       "description": "The string to redact registered secrets from.",
+       "required": true,
+       "type": "string"
+      },
+      "mask_placeholder": {
+       "default": "$REDACTED$",
+       "description": "The text to substitute in place of each registered secret.",
+       "required": false,
+       "type": "string"
+      }
+     },
+     "plugin_name": "ansible.builtin.mask_secrets",
+     "positional": "_input",
+     "seealso": [
+      {
+       "plugin": "ansible.builtin.register_secret",
+       "plugin_type": "filter"
+      }
+     ],
+     "short_description": "Redact registered secrets from a string",
+     "version_added": "2.22",
+     "version_added_collection": "ansible.builtin"
+    },
+    "examples": "# Redact any registered secret that appears in a string.\nsafe_line: \"{{ ('token=' ~ api_token) | mask_secrets }}\"\n\n# Redact using a custom placeholder.\nsafe_line: \"{{ some_text | mask_secrets(mask_placeholder='***') }}\"\n",
+    "metadata": null,
+    "return": {
+     "_value": {
+      "description": "The input string with any registered secrets replaced by the placeholder.",
+      "type": "string"
+     }
+    }
+   },
    "ansible.builtin.max": {
     "doc": {
      "collection": "ansible.builtin",
@@ -5329,6 +5385,45 @@
      "_value": {
       "description": "Matched string or C(None) if no match.",
       "type": "str"
+     }
+    }
+   },
+   "ansible.builtin.register_secret": {
+    "doc": {
+     "author": "Ansible Core Team",
+     "collection": "ansible.builtin",
+     "description": [
+      "Registers the input value with Ansible's secret masker so that it is redacted from output that Ansible masks, such as display output, and module logging.",
+      "Registration is non-destructive; the value is returned unchanged so it can still be used by its true value, for example by registering it inline while assigning it to a variable.",
+      "Only string values can be registered, other types will raise an error."
+     ],
+     "filename": "/ansible/plugins/filter/register_secret.yml",
+     "name": "register_secret",
+     "options": {
+      "_input": {
+       "description": "The value to register as a secret.",
+       "required": true,
+       "type": "string"
+      }
+     },
+     "plugin_name": "ansible.builtin.register_secret",
+     "positional": "_input",
+     "seealso": [
+      {
+       "plugin": "ansible.builtin.mask_secrets",
+       "plugin_type": "filter"
+      }
+     ],
+     "short_description": "Register a value as a secret so it is masked in output",
+     "version_added": "2.22",
+     "version_added_collection": "ansible.builtin"
+    },
+    "examples": "# Register a value as a secret and assign it in one step; later uses of my_secret are masked in output.\nmy_secret: \"{{ lookup('env', 'API_TOKEN') | register_secret }}\"\n",
+    "metadata": null,
+    "return": {
+     "_value": {
+      "description": "The input value, unchanged.",
+      "type": "string"
      }
     }
    },
@@ -7543,7 +7638,7 @@
      "version_added": "2.4",
      "version_added_collection": "ansible.builtin"
     },
-    "examples": "# fmt: code\n\n### simple bash script\n\n   #!/usr/bin/env bash\n\n   if [ \"$1\" == \"--list\" ]; then\n   cat<<EOF\n   {\n     \"bash_hosts\": {\n       \"hosts\": [\n         \"myhost.domain.com\",\n         \"myhost2.domain.com\"\n       ],\n       \"vars\": {\n         \"host_test\": \"test-value\"\n       }\n     },\n     \"_meta\": {\n       \"hostvars\": {\n         \"myhost.domain.com\": {\n           \"host_specific_test_var\": \"test-value\"\n         }\n       }\n     }\n   }\n   EOF\n   elif [ \"$1\" == \"--host\" ]; then\n     # this should not normally be called by Ansible as we return _meta above\n     if [ \"$2\" == \"myhost.domain.com\" ]; then\n        echo '{\"_meta\": {hostvars\": {\"myhost.domain.com\": {\"host_specific-test_var\": \"test-value\"}}}}'\n     else\n        echo '{\"_meta\": {hostvars\": {}}}'\n     fi\n   else\n     echo \"Invalid option: use --list or --host <hostname>\"\n     exit 1\n   fi\n\n\n### python example with ini config\n\n    #!/usr/bin/env python\n    \"\"\"\n    # ansible_inventory.py\n    \"\"\"\n    import argparse\n    import json\n    import os.path\n    import sys\n    from configparser import ConfigParser\n    from inventories.custom import MyInventoryAPI\n\n    def load_config() -> ConfigParser:\n        cp = ConfigParser()\n        config_file = os.path.expanduser(\"~/.config/ansible_inventory_script.cfg\")\n        cp.read(config_file)\n        if not cp.has_option('DEFAULT', 'namespace'):\n            raise ValueError(\"Missing configuration option: DEFAULT -> namespace\")\n        return cp\n\n\n    def get_api_data(namespace: str, pretty=False) -> str:\n        \"\"\"\n        :param namespace: parameter for our custom api\n        :param pretty: Human readable JSON vs machine readable\n        :return: JSON string\n        \"\"\"\n        found_data = list(MyInventoryAPI(namespace))\n        hostvars = {}\n        data = { '_meta': { 'hostvars': {}},}\n\n        groups = found_data['groups'].keys()\n        for group in groups:\n            groups[group]['hosts'] = found_data[groups].get('host_list', [])\n            if group not in data:\n                data[group] = {}\n            data[group]['hosts'] = found_data[groups].get('host_list', [])\n            data[group]['vars'] = found_data[groups].get('info', [])\n            data[group]['children'] = found_data[group].get('subgroups', [])\n\n        for host_data in found_data['hosts']:\n            for name in host_data.items():\n                # turn info into vars\n                data['_meta'][name] = found_data[name].get('info', {})\n                # set ansible_host if possible\n                if 'address' in found_data[name]:\n                    data[name]['_meta']['ansible_host'] = found_data[name]['address']\n        data['_meta']['hostvars'] = hostvars\n\n        return json.dumps(data, indent=pretty)\n\n    if __name__ == '__main__':\n\n        arg_parser = argparse.ArgumentParser( description=__doc__, prog=__file__)\n        arg_parser.add_argument('--pretty', action='store_true', default=False, help=\"Pretty JSON\")\n        mandatory_options = arg_parser.add_mutually_exclusive_group()\n        mandatory_options.add_argument('--list', action='store', nargs=\"*\", help=\"Get inventory JSON from our API\")\n        mandatory_options.add_argument('--host', action='store',\n                                       help=\"Get variables for specific host, not used but kept for compatibility\")\n\n        try:\n            config = load_config()\n            namespace = config.get('DEFAULT', 'namespace')\n\n            args = arg_parser.parse_args()\n            if args.host:\n                print('{\"_meta\":{}}')\n                sys.stderr.write('This script already provides _meta via --list, so this option is really ignored')\n            elif len(args.list) >= 0:\n                print(get_api_data(namespace, args.pretty))\n            else:\n                raise ValueError(\"Valid options are --list or --host <HOSTNAME>\")\n\n        except ValueError:\n            raise\n\n",
+    "examples": "# fmt: code\n\n### simple bash script\n\n   #!/usr/bin/env bash\n\n   if [ \"$1\" == \"--list\" ]; then\n   cat<<EOF\n   {\n     \"bash_hosts\": {\n       \"hosts\": [\n         \"myhost.domain.com\",\n         \"myhost2.domain.com\"\n       ],\n       \"vars\": {\n         \"host_test\": \"test-value\"\n       }\n     },\n     \"_meta\": {\n       \"hostvars\": {\n         \"myhost.domain.com\": {\n           \"host_specific_test_var\": \"test-value\"\n         }\n       }\n     }\n   }\n   EOF\n   elif [ \"$1\" == \"--host\" ]; then\n     # this should not normally be called by Ansible as we return _meta above\n     if [ \"$2\" == \"myhost.domain.com\" ]; then\n        echo '{\"_meta\": {\"hostvars\": {\"myhost.domain.com\": {\"host_specific-test_var\": \"test-value\"}}}}'\n     else\n        echo '{\"_meta\": {\"hostvars\": {}}}'\n     fi\n   else\n     echo \"Invalid option: use --list or --host <hostname>\"\n     exit 1\n   fi\n\n\n### python example with ini config\n\n    #!/usr/bin/env python\n    \"\"\"\n    # ansible_inventory.py\n    \"\"\"\n    import argparse\n    import json\n    import os.path\n    import sys\n    from configparser import ConfigParser\n    from inventories.custom import MyInventoryAPI\n\n    def load_config() -> ConfigParser:\n        cp = ConfigParser()\n        config_file = os.path.expanduser(\"~/.config/ansible_inventory_script.cfg\")\n        cp.read(config_file)\n        if not cp.has_option('DEFAULT', 'namespace'):\n            raise ValueError(\"Missing configuration option: DEFAULT -> namespace\")\n        return cp\n\n\n    def get_api_data(namespace: str, pretty=False) -> str:\n        \"\"\"\n        :param namespace: parameter for our custom api\n        :param pretty: Human readable JSON vs machine readable\n        :return: JSON string\n        \"\"\"\n        found_data = list(MyInventoryAPI(namespace))\n        hostvars = {}\n        data = { '_meta': { 'hostvars': {}},}\n\n        groups = found_data['groups'].keys()\n        for group in groups:\n            groups[group]['hosts'] = found_data[groups].get('host_list', [])\n            if group not in data:\n                data[group] = {}\n            data[group]['hosts'] = found_data[groups].get('host_list', [])\n            data[group]['vars'] = found_data[groups].get('info', [])\n            data[group]['children'] = found_data[group].get('subgroups', [])\n\n        for host_data in found_data['hosts']:\n            for name in host_data.items():\n                # turn info into vars\n                data['_meta'][name] = found_data[name].get('info', {})\n                # set ansible_host if possible\n                if 'address' in found_data[name]:\n                    data[name]['_meta']['ansible_host'] = found_data[name]['address']\n        data['_meta']['hostvars'] = hostvars\n\n        return json.dumps(data, indent=pretty)\n\n    if __name__ == '__main__':\n\n        arg_parser = argparse.ArgumentParser( description=__doc__, prog=__file__)\n        arg_parser.add_argument('--pretty', action='store_true', default=False, help=\"Pretty JSON\")\n        mandatory_options = arg_parser.add_mutually_exclusive_group()\n        mandatory_options.add_argument('--list', action='store', nargs=\"*\", help=\"Get inventory JSON from our API\")\n        mandatory_options.add_argument('--host', action='store',\n                                       help=\"Get variables for specific host, not used but kept for compatibility\")\n\n        try:\n            config = load_config()\n            namespace = config.get('DEFAULT', 'namespace')\n\n            args = arg_parser.parse_args()\n            if args.host:\n                print('{\"_meta\":{}}')\n                sys.stderr.write('This script already provides _meta via --list, so this option is really ignored')\n            elif len(args.list) >= 0:\n                print(get_api_data(namespace, args.pretty))\n            else:\n                raise ValueError(\"Valid options are --list or --host <HOSTNAME>\")\n\n        except ValueError:\n            raise\n\n",
     "metadata": null,
     "return": null
    },
@@ -9618,6 +9713,7 @@
       },
       "password": {
        "description": "Password to use for HTTP authentication.",
+       "secret": true,
        "type": "string",
        "version_added": "2.8",
        "version_added_collection": "ansible.builtin"
@@ -11509,7 +11605,7 @@
      "notes": [
       "If you want to run a command through the shell (say you are using C(<), C(>), C(|), and so on), you actually want the M(ansible.builtin.shell) module instead. Parsing shell metacharacters can lead to unexpected commands being executed if quoting is not done correctly so it is more secure to use the M(ansible.builtin.command) module when possible.",
       "O(creates), O(removes), and O(chdir) can be specified after the command. For instance, if you only want to run a command if a certain file does not exist, use this.",
-      "Check mode is supported when passing O(creates) or O(removes). If running in check mode and either of these are specified, the module will check for the existence of the file and report the correct changed status. If these are not supplied, the task will be skipped.",
+      "Check mode is supported when passing O(creates) or O(removes). If running in check mode and either of these are specified, the module will check for the existence of the file and report the correct changed status. If these are not supplied, the task will return RV(ignore:changed=False).",
       "The O(ignore:executable) parameter is removed since version 2.4. If you have a need for this parameter, use the M(ansible.builtin.shell) module instead.",
       "For Windows targets, use the M(ansible.windows.win_command) module instead.",
       "For rebooting systems, use the M(ansible.builtin.reboot) or M(ansible.windows.win_reboot) module.",
@@ -14009,23 +14105,18 @@
        "type": "path"
       },
       "state": {
-       "choices": [
-        "absent",
-        "directory",
-        "file",
-        "hard",
-        "link",
-        "touch"
-       ],
+       "choices": {
+        "absent": "The O(path) should not exist. As needed, files, hard links and symlinks will be unlinked, directories will be recursively deleted. In the case of a directory, if C(diff) is declared, you will see the files and folders deleted listed under C(path_contents). The action will not fail if the O(path) does not exist as the state did not change.",
+        "directory": "The target is a directory. If needed, all intermediate subdirectories will be created, using the supplied permissions.",
+        "file": "The O(path) is a file. If no other options were specified, it can be used to query the current information of the O(path).",
+        "hard": "The O(path) is a hard link to the specified O(src).",
+        "link": "The O(path) is a symbolic link to the specified O(src). Other options can be applied depending on O(follow) setting, depending on filesystem support. For example, O(mode) and O(owner) are often not applicable on the link itself.",
+        "touch": "If the O(path) does not exist, an empty file will be created.  Otherwise, an existing file or directory will receive updated file access and modification times (similar to the way V(touch) works from the command line). As such, this will always result in a V(changed) state."
+       },
        "description": [
-        "If V(absent), directories will be recursively deleted, and files or symlinks will be unlinked. In the case of a directory, if C(diff) is declared, you will see the files and folders deleted listed under C(path_contents). Note that V(absent) will not cause M(ansible.builtin.file) to fail if the O(path) does not exist as the state did not change.",
-        "If V(directory), all intermediate subdirectories will be created if they do not exist. Since Ansible 1.7 they will be created with the supplied permissions.",
-        "If V(file), with no other options, returns the current state of C(path).",
-        "If V(file), even with other options (such as O(mode)), the file will be modified if it exists but will NOT be created if it does not exist. Set to V(touch) or use the M(ansible.builtin.copy) or M(ansible.builtin.template) module if you want to create the file if it does not exist.",
-        "If V(hard), the hard link will be created or changed.",
-        "If V(link), the symbolic link will be created or changed.",
-        "If V(touch) (new in 1.4), an empty file will be created if the file does not exist, while an existing file or directory will receive updated file access and modification times (similar to the way V(touch) works from the command line).",
-        "Default is the current state of the file if it exists, V(directory) if O(recurse=yes), or V(file) otherwise."
+        "Defines the expectation for the file/path, see the choice values for details.",
+        "All values, except V(absent), are expected to enforce the other options, like O(mode), O(owner) and O(access_time) as appropriate.",
+        "When unspecified (default), the current state of the file on the target is assumed to be the desired state."
        ],
        "type": "str"
       },
@@ -14077,6 +14168,22 @@
       "description": "Destination file/path, equal to the value passed to O(path).",
       "returned": "O(state=absent), O(state=directory), O(state=file)",
       "sample": "/path/to/file.txt",
+      "type": "str"
+     },
+     "src": {
+      "description": "Source path of the symlink or hardlink.",
+      "returned": "O(state=link), O(state=hard)",
+      "sample": "/file/to/link/to",
+      "type": "str"
+     },
+     "state": {
+      "description": [
+       "State of the target after module execution.",
+       "For O(state=absent), this is always V(absent).",
+       "For every other state, the value is derived from the resulting path on the filesystem. It is only returned when that path exists, so it may be omitted (for example, a dangling symlink) or differ from the requested O(state)."
+      ],
+      "returned": "always for O(state=absent), otherwise when the target path exists",
+      "sample": "absent",
       "type": "str"
      }
     }
@@ -18344,7 +18451,8 @@
       },
       "chdir": {
        "description": [
-        "cd into this directory before running the command."
+        "cd into this directory before running the command.",
+        "When O(virtualenv) is a relative path, it is resolved relative to O(chdir)."
        ],
        "type": "path",
        "version_added": "1.3",
@@ -18422,7 +18530,8 @@
       },
       "virtualenv": {
        "description": [
-        "An optional path to a I(virtualenv) directory to install into. It cannot be specified together with the O(executable) parameter (added in 2.1). If the virtualenv does not exist, it will be created before installing packages. The optional O(virtualenv_site_packages), O(virtualenv_command), and O(virtualenv_python) options affect the creation of the virtualenv."
+        "An optional path to a I(virtualenv) directory to install into. It cannot be specified together with the O(executable) parameter (added in 2.1). If the virtualenv does not exist, it will be created before installing packages. The optional O(virtualenv_site_packages), O(virtualenv_command), and O(virtualenv_python) options affect the creation of the virtualenv.",
+        "When O(chdir) is set, a relative path is resolved relative to O(chdir)."
        ],
        "type": "path"
       },
@@ -21055,6 +21164,9 @@
      "filename": "/ansible/modules/tempfile.py",
      "has_action": false,
      "module": "tempfile",
+     "notes": [
+      "O(prefix) and O(suffix) must be file name components and must not contain path separators."
+     ],
      "options": {
       "path": {
        "description": [
