@@ -4,6 +4,19 @@ antsibull-docs -- Ansible Documentation Build Scripts Release Notes
 
 .. contents:: Topics
 
+v2.27.0
+=======
+
+Release Summary
+---------------
+
+Maintenance release for upcoming changes in ansible-core 2.22.
+
+Minor Changes
+-------------
+
+- Added support for the new ``secrets`` keyword added in ansible-core 2.22+ on plugin configuration options (https://github.com/ansible-community/antsibull-docs/pull/483).
+
 v2.26.0
 =======
 
